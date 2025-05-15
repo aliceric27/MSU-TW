@@ -50,35 +50,7 @@ jobs:
         echo "# 目錄" > SUMMARY.md
         echo "" >> SUMMARY.md
         
-        # 添加一級目錄
-        for dir in */; do
-          if [ -d "$dir" ] && [ "$dir" != "images/" ]; then
-            dirname=${dir%/}
-            echo "* [$dirname]($dirname/README.md)" >> SUMMARY.md
-            
-            # 添加二級目錄
-            if [ -d "$dirname" ]; then
-              for subdir in "$dirname"/*/; do
-                if [ -d "$subdir" ]; then
-                  subdirname=$(basename "${subdir%/}")
-                  echo "  * [$subdirname]($dirname/$subdirname/README.md)" >> SUMMARY.md
-                  
-                  # 添加三級目錄
-                  if [ -d "$subdir" ]; then
-                    for subsubdir in "$subdir"/*/; do
-                      if [ -d "$subsubdir" ]; then
-                        subsubdirname=$(basename "${subsubdir%/}")
-                        echo "    * [$subsubdirname]($dirname/$subdirname/$subsubdirname/README.md)" >> SUMMARY.md
-                      fi
-                    done
-                  fi
-                fi
-              done
-            fi
-          fi
-        done
-        
-        # 添加單獨的 md 文件
+        # 添加根目錄的 md 文件
         for file in *.md; do
           if [ "$file" != "SUMMARY.md" ] && [ "$file" != "README.md" ]; then
             title=$(head -n 1 "$file" | sed 's/^# //')
@@ -86,6 +58,65 @@ jobs:
           fi
         done
         
+        # 添加一級目錄及其文件
+        for dir in */; do
+          if [ -d "$dir" ] && [ "$dir" != "images/" ]; then
+            dirname=${dir%/}
+            echo "* [$dirname]($dirname/README.md)" >> SUMMARY.md
+            
+            # 添加當前目錄中的所有 md 文件
+            for file in "$dirname"/*.md; do
+              if [ -f "$file" ] && [ "$(basename "$file")" != "README.md" ]; then
+                title=$(head -n 1 "$file" | sed 's/^# //')
+                if [ -z "$title" ]; then
+                  title=$(basename "$file" .md)
+                fi
+                echo "  * [$title]($file)" >> SUMMARY.md
+              fi
+            done
+            
+            # 添加二級目錄及其文件
+            for subdir in "$dirname"/*/; do
+              if [ -d "$subdir" ]; then
+                subdirname=$(basename "${subdir%/}")
+                echo "  * [$subdirname]($dirname/$subdirname/README.md)" >> SUMMARY.md
+                
+                # 添加二級目錄中的所有 md 文件
+                for file in "$subdir"/*.md; do
+                  if [ -f "$file" ] && [ "$(basename "$file")" != "README.md" ]; then
+                    title=$(head -n 1 "$file" | sed 's/^# //')
+                    if [ -z "$title" ]; then
+                      title=$(basename "$file" .md)
+                    fi
+                    echo "    * [$title]($file)" >> SUMMARY.md
+                  fi
+                done
+                
+                # 添加三級目錄及其文件
+                for subsubdir in "$subdir"/*/; do
+                  if [ -d "$subsubdir" ]; then
+                    subsubdirname=$(basename "${subsubdir%/}")
+                    echo "    * [$subsubdirname]($dirname/$subdirname/$subsubdirname/README.md)" >> SUMMARY.md
+                    
+                    # 添加三級目錄中的所有 md 文件
+                    for file in "$subsubdir"/*.md; do
+                      if [ -f "$file" ] && [ "$(basename "$file")" != "README.md" ]; then
+                        title=$(head -n 1 "$file" | sed 's/^# //')
+                        if [ -z "$title" ]; then
+                          title=$(basename "$file" .md)
+                        fi
+                        echo "      * [$title]($file)" >> SUMMARY.md
+                      fi
+                    done
+                  fi
+                done
+              fi
+            done
+          fi
+        done
+        
+        # 輸出生成的 SUMMARY.md 內容
+        echo "生成的 SUMMARY.md 內容："
         cat SUMMARY.md
         
     - name: Build GitBook manually
