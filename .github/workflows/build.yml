@@ -4,44 +4,87 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - master
 
 jobs:
-  main-to-gh-pages:
+  build-and-deploy:
+    name: Build and deploy
     runs-on: ubuntu-latest
+    env:
+      MY_SECRET   : ${{secrets.GH_ACCESS_TOKEN}}
+      USER_NAME   : Alex
+      USER_EMAIL  : aliceric27@gmail.com
+      BOOK_DIR    : book_sources
 
     steps:
-      - name: checkout main
-        uses: actions/checkout@v2
-        with:
-          ref: main
-
-      - name: install nodejs
-        uses: actions/setup-node@v1
-
-      - name: configue gitbook
-        run: |
-          npm install -g gitbook-cli          
-          gitbook install
-          npm install -g gitbook-summary
-      - name: generate _book folder
-        run: |
-          book sm
-          gitbook build
-          cp SUMMARY.md _book
-      - name: push _book to branch gh-pages
-        env:
-          TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-          REF: github.com/${{github.repository}}
-          MYEMAIL: aliceric27@gmail.com
-          MYNAME: ${{github.repository_owner}}
-        run: |
-          cd _book
-          git config --global user.email "${MYEMAIL}"
-          git config --global user.name "${MYNAME}"
-          git init
-          git remote add origin https://${REF}
-          git add . 
-          git commit -m "Updated By Github Actions With Build ${{github.run_number}} of ${{github.workflow}} For Github Pages"
-          git branch -M main
-          git push --force --quiet "https://${TOKEN}@${REF}" main:gh-pages
+    - name: Checkout 🛎️
+      uses: actions/checkout@v2.3.1
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+        
+    - name: Install GitBook CLI
+      run: |
+        npm install -g gitbook-cli
+        
+    - name: Create missing README.md files
+      run: |
+        cd $BOOK_DIR
+        # 遍歷所有目錄，確保有 README.md 文件
+        find . -type d -not -path "*/\.*" | while read -r dir; do
+          if [ "$dir" != "." ] && [ ! -f "$dir/README.md" ]; then
+            dirname=$(basename "$dir")
+            echo "# $dirname" > "$dir/README.md"
+            echo "創建了缺失的 README.md: $dir/README.md"
+          fi
+        done
+        
+    - name: Generate SUMMARY.md
+      run: |
+        cd $BOOK_DIR
+        # 自動生成 SUMMARY.md
+        echo "# 目錄" > SUMMARY.md
+        echo "" >> SUMMARY.md
+        
+        # 添加一級目錄
+        for dir in */; do
+          if [ -d "$dir" ] && [ "$dir" != "images/" ]; then
+            dirname=${dir%/}
+            echo "* [$dirname]($dirname/README.md)" >> SUMMARY.md
+            
+            # 添加二級目錄
+            if [ -d "$dirname" ]; then
+              for subdir in "$dirname"/*/; do
+                if [ -d "$subdir" ]; then
+                  subdirname=$(basename "${subdir%/}")
+                  echo "  * [$subdirname]($dirname/$subdirname/README.md)" >> SUMMARY.md
+                  
+                  # 添加三級目錄
+                  if [ -d "$subdir" ]; then
+                    for subsubdir in "$subdir"/*/; do
+                      if [ -d "$subsubdir" ]; then
+                        subsubdirname=$(basename "${subsubdir%/}")
+                        echo "    * [$subsubdirname]($dirname/$subdirname/$subsubdirname/README.md)" >> SUMMARY.md
+                      fi
+                    done
+                  fi
+                fi
+              done
+            fi
+          fi
+        done
+        
+        # 添加單獨的 md 文件
+        for file in *.md; do
+          if [ "$file" != "SUMMARY.md" ] && [ "$file" != "README.md" ]; then
+            title=$(head -n 1 "$file" | sed 's/^# //')
+            echo "* [$title]($file)" >> SUMMARY.md
+          fi
+        done
+        
+        cat SUMMARY.md
+        
+    - name: Build and Deploy 🚀
+      uses: onejar99/gitbook-build-publish-action@v1.0.3
