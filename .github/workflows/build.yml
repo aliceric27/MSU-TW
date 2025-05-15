@@ -23,11 +23,13 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '14'
+        node-version: '12'
         
     - name: Install GitBook CLI
       run: |
         npm install -g gitbook-cli
+        # 修復某些 npm 命令問題
+        npm config set legacy-peer-deps true
         
     - name: Create missing README.md files
       run: |
@@ -86,5 +88,43 @@ jobs:
         
         cat SUMMARY.md
         
-    - name: Build and Deploy 🚀
-      uses: onejar99/gitbook-build-publish-action@v1.0.3
+    - name: Build GitBook manually
+      run: |
+        cd $BOOK_DIR
+        # 初始化 GitBook
+        gitbook init
+        
+        # 手動安裝每個插件
+        gitbook install
+        
+        # 如果插件安裝失敗，嘗試直接使用 npm 安裝
+        mkdir -p node_modules
+        npm install gitbook-plugin-anchor-navigation-ex@1.0.12 --no-save || true
+        npm install gitbook-plugin-edit-link --no-save || true
+        npm install gitbook-plugin-copy-code-button --no-save || true
+        npm install gitbook-plugin-theme-comscore --no-save || true
+        npm install gitbook-plugin-ga --no-save || true
+        npm install gitbook-plugin-summary --no-save || true
+        
+        # 構建 GitBook
+        gitbook build
+        
+        # 檢查構建結果
+        if [ -d "_book" ]; then
+          echo "GitBook 構建成功!"
+          ls -la _book/
+        else
+          echo "GitBook 構建失敗!"
+          exit 1
+        fi
+        
+    - name: Deploy to GitHub Pages
+      run: |
+        cd $BOOK_DIR/_book
+        git init
+        git config user.name "$USER_NAME"
+        git config user.email "$USER_EMAIL"
+        git add .
+        git commit -m "Deploy to GitHub Pages"
+        git remote add origin https://$USER_NAME:$MY_SECRET@github.com/$GITHUB_REPOSITORY.git
+        git push -f origin master:gh-pages

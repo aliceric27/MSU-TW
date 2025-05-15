@@ -1,4 +1,4 @@
-{    "plugins": [  "anchor-navigation-ex", "edit-link", "copy-code-button", "theme-comscore", "ga", "summary" ],
+{    "plugins": [  "anchor-navigation-ex@1.0.12", "edit-link", "copy-code-button", "theme-comscore", "ga", "summary" ],
     "pluginsConfig": {
       "fontSettings": {
         "theme": "night",
