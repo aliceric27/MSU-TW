@@ -99,7 +99,7 @@ jobs:
         
         # 如果插件安裝失敗，嘗試直接使用 npm 安裝
         mkdir -p node_modules
-        npm install gitbook-plugin-anchor-navigation-ex@1.0.12 --no-save || true
+        npm install gitbook-plugin-anchor-navigation-ex --no-save || true
         npm install gitbook-plugin-edit-link --no-save || true
         npm install gitbook-plugin-copy-code-button --no-save || true
         npm install gitbook-plugin-theme-comscore --no-save || true
