@@ -1,0 +1,12 @@
+{
+  "name": "gitbook-msu",
+  "version": "1.0.0",
+  "description": "MSU GitBook",
+  "dependencies": {
+    "gitbook-plugin-edit-link": "^2.0.2",
+    "gitbook-plugin-copy-code-button": "^0.0.2",
+    "gitbook-plugin-theme-comscore": "^0.0.3",
+    "gitbook-plugin-ga": "^1.0.1",
+    "gitbook-plugin-summary": "^1.1.0"
+  }
+}
